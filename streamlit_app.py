@@ -6,8 +6,12 @@ from typing import List, Tuple
 import streamlit as st
 from dotenv import load_dotenv
 
-from src.indexer import load_corpora
+from pathlib import Path
+from src.indexer import load_corpora, persist_corpora, build_vector_store
 from src.retrieval import build_hybrid_retriever, build_qa_chain, parent_expander, format_sources
+from src.config import DATA_DIR, PARENTS_JSONL, CHILDREN_JSONL, CHROMA_DIR
+from src.parser import generate_child_chunks
+from index_from_manual import load_parents_from_jsonl
 
 
 def ensure_env():
@@ -84,6 +88,24 @@ def render_minimal_console():
 
     ensure_env()
 
+    # Auto-build index on first run if missing
+    def ensure_index_ready():
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+        have_parents = PARENTS_JSONL.exists()
+        have_children = CHILDREN_JSONL.exists()
+        have_chroma = (CHROMA_DIR / "chroma.sqlite3").exists()
+        if have_parents and have_children and have_chroma:
+            return
+        with st.spinner("Building index (first run)..."):
+            src_path = Path("extracted_sections_final.jsonl")
+            parents_local = load_parents_from_jsonl(src_path)
+            all_children = []
+            for p in parents_local:
+                all_children.extend(generate_child_chunks(p, enable_llm=False, llm=None))
+            persist_corpora(parents_local, all_children)
+            build_vector_store(all_children)
+
+    ensure_index_ready()
     parents, children = load_corpora()
     if not parents or not children:
         st.error("No index found. Run: python index_from_manual.py --file extracted_sections_final.jsonl")
