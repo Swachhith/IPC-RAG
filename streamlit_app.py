@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
 import os
 import re
 from typing import List, Tuple
@@ -180,5 +183,6 @@ def render_minimal_console():
 
 if __name__ == "__main__":
     render_minimal_console()
+
 
 
