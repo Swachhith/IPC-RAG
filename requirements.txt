@@ -12,4 +12,5 @@ rank-bm25>=0.2.2
 python-dotenv>=1.0.1
 tiktoken>=0.7.0
 openai>=1.40.0
+pysqlite3-binary
 streamlit>=1.36.0
